@@ -1,0 +1,14 @@
+{
+  "name": "spotify-design",
+  "version": "1.0.0",
+  "description": "Spotify-style Rich Presence mockup split from YMdash",
+  "main": "src/server/index.js",
+  "scripts": {
+    "start": "node src/server/index.js",
+    "test": "node --test src/tests/**/*.test.js",
+    "lint:imports": "node -c src/server/index.js && node -c src/server/discord-ipc.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
