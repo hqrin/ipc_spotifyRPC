@@ -9,7 +9,7 @@
 
 Muestra tu actividad de Spotify en Discord con presencia enriquecida (Rich Presence) en tiempo real.
 
-[Características](#-características) • [Instalación](#-instalación) • [Uso](#-uso) • [Configuración](#-configuración) • [Estructura](#-estructura)
+
 
 </div>
 
@@ -101,7 +101,7 @@ npm test
 
 ---
 
-## ⚙️ Configuración
+##  Configuración
 
 Edita `src/server/config.json`:
 

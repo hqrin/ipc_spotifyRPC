@@ -1,6 +1,8 @@
+const inquirer = require('inquirer');
 const WebSocket = require('ws');
 const DiscordIPC = require('../server/discord-ipc');
 const { loadConfig } = require('../server/configLoader');
+const { startRealServer, displayPresenceUI } = require('../server/mockServer');
 
 let config = loadConfig();
 
@@ -15,6 +17,9 @@ function truncateString(str, maxLength = 127) {
 
 function updatePresence(song) {
   if (!song || !discord || !discord.connected) return;
+
+  // Mostrar el bonito diseño
+  displayPresenceUI(song);
 
   const iconUrl = song.icon || song.albumArt || config.spotify?.icon || config.spotify?.albumArt || '';
   const albumText = song.album || config.spotify?.album || 'Spotify';
@@ -45,7 +50,7 @@ function connectDiscord() {
   discord = new DiscordIPC(config.clientId);
 
   discord.on('connect', () => {
-    console.log('\n🎧 ✅ Conectado a Discord\n');
+    console.log('\n✨ 🎧 Conectado a Discord con modo IPC\n');
     if (currentSong) {
       updatePresence(currentSong);
     }
@@ -95,10 +100,35 @@ const banner = `
 ╚══════════════════════════════════════╝
 `;
 
-console.log(banner);
+async function showMenu() {
+  const answers = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'mode',
+      message: '🎵 Selecciona el modo de funcionamiento:',
+      choices: [
+        { name: '🔗 Opción 1: Modo IPC Custom (Discord IPC - Local)', value: 'ipc' },
+        { name: '🎧 Opción 2: Modo Real con Token (API Discord - Conexión Real)', value: 'token' }
+      ]
+    }
+  ]);
 
-connectDiscord();
-setInterval(() => {
-  currentSong = createSpotifySong();
-  updatePresence(currentSong);
-}, 1000);
+  if (answers.mode === 'ipc') {
+    console.log(banner);
+    console.log('\n📡 Iniciando modo IPC Custom...\n');
+    connectDiscord();
+    
+    // Solo en modo IPC actualizamos cada segundo
+    setInterval(() => {
+      currentSong = createSpotifySong();
+      updatePresence(currentSong);
+    }, 1000);
+  } else {
+    startRealServer();
+  }
+}
+
+showMenu().catch(err => {
+  console.error('Error:', err);
+  process.exit(1);
+});
