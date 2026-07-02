@@ -1,4 +1,3 @@
-const inquirer = require('inquirer');
 const WebSocket = require('ws');
 const DiscordIPC = require('../server/discord-ipc');
 const { loadConfig } = require('../server/configLoader');
@@ -100,35 +99,29 @@ const banner = `
 ╚══════════════════════════════════════╝
 `;
 
-async function showMenu() {
-  const answers = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'mode',
-      message: '🎵 Selecciona el modo de funcionamiento:',
-      choices: [
-        { name: '🔗 Opción 1: Modo IPC Custom (Discord IPC - Local)', value: 'ipc' },
-        { name: '🎧 Opción 2: Modo Real con Token (API Discord - Conexión Real)', value: 'token' }
-      ]
-    }
-  ]);
+function startIPCMode() {
+  console.log(banner);
+  console.log('\n📡 Iniciando modo IPC Custom...\n');
+  connectDiscord();
+  
+  // Solo en modo IPC actualizamos cada segundo
+  setInterval(() => {
+    currentSong = createSpotifySong();
+    updatePresence(currentSong);
+  }, 1000);
+}
 
-  if (answers.mode === 'ipc') {
-    console.log(banner);
-    console.log('\n📡 Iniciando modo IPC Custom...\n');
-    connectDiscord();
-    
-    // Solo en modo IPC actualizamos cada segundo
-    setInterval(() => {
-      currentSong = createSpotifySong();
-      updatePresence(currentSong);
-    }, 1000);
+function startServer(mode) {
+  if (mode === 'ipc') {
+    startIPCMode();
   } else {
     startRealServer();
   }
 }
 
-showMenu().catch(err => {
-  console.error('Error:', err);
-  process.exit(1);
-});
+module.exports = { startServer, startIPCMode, startRealServer, createSpotifySong, displayPresenceUI };
+
+// Si se ejecuta directamente desde este archivo, inicia en modo IPC por defecto
+if (require.main === module) {
+  startIPCMode();
+}

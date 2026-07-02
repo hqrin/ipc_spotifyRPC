@@ -1,12 +1,14 @@
 require('dotenv').config();
-const axios = require('axios');
+const WebSocket = require('ws');
 const { loadConfig } = require('../server/configLoader');
 
 let config = loadConfig();
 let currentSong = null;
 let updateInterval = null;
+let ws = null;
+let heartbeatInterval = null;
 
-const DISCORD_API_URL = 'https://discord.com/api/v10';
+const DISCORD_GATEWAY_URL = 'wss://gateway.discord.gg/?v=10&encoding=json';
 
 function truncateString(str, maxLength = 127) {
   if (!str) return '';
@@ -57,66 +59,43 @@ function displayPresenceUI(song) {
   console.log(ui);
 }
 
-async function setDiscordActivity() {
-  const userToken = process.env.USER_TOKEN;
-  
-  if (!userToken) {
-    console.log('❌ Error: USER_TOKEN no está configurado en .env');
+function sendPresence() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    console.log('❌ WebSocket no conectado');
     return;
   }
 
-  try {
-    currentSong = createSpotifySong();
+  currentSong = createSpotifySong();
+  displayPresenceUI(currentSong);
 
-    // Mostrar el bonito diseño
-    displayPresenceUI(currentSong);
-
-    const activity = {
-      name: truncateString(currentSong.title, 127),
-      type: 2,
-      state: truncateString(currentSong.artist, 127),
-      details: truncateString(currentSong.album, 127),
-      assets: {
-        large_image: currentSong.icon,
-        large_text: currentSong.album,
-        small_text: 'Spotify'
-      },
-      buttons: [
-        { label: 'Abrir Spotify', url: currentSong.url || 'https://open.spotify.com/' }
+  const presence = {
+    op: 3,
+    d: {
+      since: null,
+      activities: [
+        {
+          name: truncateString(currentSong.title, 127),
+          type: 2, // LISTENING
+          state: truncateString(currentSong.artist, 127),
+          details: truncateString(currentSong.album, 127),
+          assets: {
+            large_image: currentSong.icon || 'https://i.pinimg.com/736x/6a/7d/64/6a7d64df939ba3ceed5886aa432daf0c.jpg',
+            large_text: currentSong.album,
+            small_text: 'Spotify'
+          },
+          timestamps: {
+            start: Math.round((Date.now() - (currentSong.currentTime * 1000)) / 1000),
+            end: Math.round((Date.now() + ((currentSong.duration - currentSong.currentTime) * 1000)) / 1000)
+          }
+        }
       ],
-      timestamps: {
-        start: Math.round((Date.now() - (currentSong.currentTime * 1000)) / 1000),
-        end: Math.round((Date.now() + ((currentSong.duration - currentSong.currentTime) * 1000)) / 1000)
-      }
-    };
-
-    // Actualizar la actividad en Discord
-    await axios.patch(
-      `${DISCORD_API_URL}/users/@me/settings`,
-      {
-        custom_status: {
-          text: `🎧 ${truncateString(currentSong.artist, 30)} - ${truncateString(currentSong.title, 30)}`,
-          expires_at: null
-        }
-      },
-      {
-        headers: {
-          'Authorization': userToken,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    console.log('\n✅ Actividad actualizada en Discord');
-  } catch (error) {
-    if (error.response?.status === 401) {
-      console.log('\n❌ Error: Token de usuario inválido o expirado');
-    } else if (error.response?.status === 429) {
-      console.log('\n⏱️  Rate limited. Esperando...');
-    } else {
-      console.log(`\n❌ Error al actualizar Discord: ${error.message}`);
+      status: 'online',
+      afk: false
     }
-  }
+  };
+
+  ws.send(JSON.stringify(presence));
+  console.log('\n✅ Actividad actualizada en Discord');
 }
 
 async function startRealServer() {
@@ -139,24 +118,126 @@ async function startRealServer() {
   }
 
   console.log(`✅ Conectando con token: ${userToken.substring(0, 20)}...\n`);
-  console.log('📡 Actualizando Rich Presence en vivo...\n');
+  console.log('📡 Conectando a Discord Gateway...\n');
 
-  // Primera actualización
-  await setDiscordActivity();
+  let connected = false;
 
-  // Actualizar cada 15 segundos
-  updateInterval = setInterval(async () => {
-    await setDiscordActivity();
-  }, 15000);
+  // Conectar a Discord Gateway
+  ws = new WebSocket(DISCORD_GATEWAY_URL);
 
-  console.log('\n✨ Rich Presence en vivo. Presiona Ctrl+C para salir.\n');
+  ws.on('open', () => {
+    console.log('[Gateway] WebSocket abierto, esperando HELLO...');
+  });
+
+  ws.on('message', (data) => {
+    try {
+      const message = JSON.parse(data);
+
+      if (message.op === 10) {
+        // HELLO
+        const heartbeat_interval = message.d.heartbeat_interval;
+        console.log(`[Gateway] Heartbeat interval: ${heartbeat_interval}ms`);
+        
+        console.log('[Gateway] Enviando IDENTIFY...');
+        ws.send(JSON.stringify({
+          op: 2,
+          d: {
+            token: userToken,
+            intents: 0,
+            properties: {
+              $os: 'windows',
+              $browser: 'spotify-design',
+              $device: 'spotify-design'
+            }
+          }
+        }));
+
+        // Heartbeat
+        heartbeatInterval = setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              op: 1,
+              d: null
+            }));
+          }
+        }, heartbeat_interval);
+      }
+
+      if (message.t === 'READY') {
+        console.log('✅ READY recibido - usuario autenticado\n');
+        connected = true;
+        
+        setTimeout(() => {
+          console.log('📡 Enviando presencia inicial...');
+          sendPresence();
+        }, 500);
+      }
+
+      if (message.op === 11) {
+        // HEARTBEAT_ACK
+        console.log('[Gateway] Heartbeat ACK recibido');
+      }
+
+      if (message.op === 4 || message.t === 'GUILD_CREATE') {
+        // Guild create/update, también podemos enviar presencia aquí
+        if (connected && !updateInterval) {
+          console.log('[Gateway] Conectado correctamente, iniciando actualizaciones...');
+          updateInterval = setInterval(() => {
+            if (connected && ws && ws.readyState === WebSocket.OPEN) {
+              sendPresence();
+            }
+          }, 15000);
+        }
+      }
+
+      if (message.op === 9) {
+        console.log('❌ INVALID_SESSION - Token inválido o expirado');
+        console.log('Error:', message.d);
+        process.exit(1);
+      }
+
+      if (message.op === 0 && message.t) {
+        console.log(`[Gateway] Evento: ${message.t}`);
+      }
+    } catch (e) {
+      console.log('[Gateway] Error procesando mensaje:', e.message);
+    }
+  });
+
+  ws.on('error', (error) => {
+    console.log(`❌ Error de WebSocket: ${error.message}`);
+  });
+
+  ws.on('close', () => {
+    console.log('\n❌ Conexión cerrada');
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    if (updateInterval) clearInterval(updateInterval);
+  });
+
+  console.log('✨ Esperando conexión a Discord...\n');
+
+  // Esperar a que se conecte antes de iniciar updates
+  setTimeout(() => {
+    if (connected && !updateInterval) {
+      console.log('📡 Iniciando actualizaciones periódicas...\n');
+      updateInterval = setInterval(() => {
+        if (connected && ws && ws.readyState === WebSocket.OPEN) {
+          sendPresence();
+        }
+      }, 15000);
+    }
+  }, 3000);
 
   // Manejo de Ctrl+C
   process.on('SIGINT', () => {
-    clearInterval(updateInterval);
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    if (updateInterval) clearInterval(updateInterval);
+    if (ws) ws.close();
     console.log('\n\n👋 Desconectado. ¡Adiós!');
     process.exit(0);
   });
+
+  console.log('✨ Presiona Ctrl+C para salir.\n');
 }
 
 module.exports = { startRealServer, createSpotifySong, displayPresenceUI };
