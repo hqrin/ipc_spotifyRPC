@@ -1,0 +1,50 @@
+name: "Release"
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        TAG=$(git describe --tags --abbrev=0)
+        PREV_TAG=$(git describe --tags --abbrev=0 $TAG^)
+        CHANGELOG=$(git log $PREV_TAG..$TAG --oneline --format='- %s (%h)')
+        echo "content<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: |
+          ## Changes
+          ${{ steps.changelog.outputs.content }}
+          
+          ## Installation
+          ```bash
+          npm install
+          ```
+          
+          See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for more details.
+        draft: false
+        prerelease: false
