@@ -15,7 +15,7 @@ Muestra tu actividad de Spotify en Discord con presencia enriquecida (Rich Prese
 
 ---
 
-## 📋 Descripción
+##  Descripción
 
 **Spotify Discord Rich Presence** es una aplicación Node.js que conecta tu cliente de Discord con un servidor personalizado para mostrar lo que estás escuchando en Spotify. Implementa un protocolo IPC nativo de Discord sin dependencias externas de `discord-rpc`.
 
@@ -27,7 +27,7 @@ La aplicación muestra:
 
 ---
 
-## ✨ Características
+##  Características
 
 - ✅ **Conexión IPC Nativa** - Implementación directa del protocolo Discord sin npm packages externos
 - ✅ **Configuración Centralizada** - Todo en un archivo `config.json` fácil de editar
@@ -49,7 +49,7 @@ La aplicación muestra:
 
 ---
 
-## 🚀 Instalación
+##  Instalación
 
 ### 1. Clonar el repositorio
 ```bash
@@ -75,7 +75,7 @@ node src/cli/serviceSelector.js
 
 ---
 
-## 💻 Uso
+##  Uso
 
 ### Iniciar el servidor
 ```bash
@@ -143,7 +143,7 @@ Edita `src/server/config.json`:
 
 ---
 
-## 📁 Estructura del Proyecto
+##  Estructura del Proyecto
 
 ```
 spotify-design/
@@ -282,12 +282,6 @@ Salida esperada:
 
 ---
 
-## 📝 Licencia
-
-MIT © 2024
-
----
-
 ## 🤝 Contribuir
 
 ¡Las contribuciones son bienvenidas! Por favor:
@@ -302,22 +296,12 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md) para más detalles.
 
 ---
 
-## 🙏 Agradecimientos
-
-- Discord IPC Protocol Documentation
-- Comunidad de Node.js
-- Inspirado en aplicaciones de Rich Presence
-
----
-
 ## 📞 Soporte
 
 ¿Preguntas o problemas?
 
 - 📧 Abre un [Issue](https://github.com/hqrin/ipc_spotifyRPC/issues)
 - 💬 Discute en [Discussions](https://github.com/hqrin/ipc_spotifyRPC/discussions)
-- 🐦 Contáctame en Twitter
-
 ---
 
 <div align="center">
