@@ -17,7 +17,7 @@ Este proyecto se adhiere al [Covenant Code of Conduct](https://www.contributor-c
 ```bash
 # Fork el repositorio desde GitHub
 # Luego clona tu fork
-git clone https://github.com/TU_USUARIO/spotify-design.git
+git clone https://github.com/hqrin/ipc_spotifyRPC.git
 cd spotify-design
 git remote add upstream https://github.com/USUARIO_ORIGINAL/spotify-design.git
 ```
@@ -179,7 +179,7 @@ async connect(clientId) {
 
 ---
 
-## 🔍 Checklist Antes de PR
+##  Checklist Antes de PR
 
 - [ ] Tests pasan: `npm test`
 - [ ] Código sigue el estilo
@@ -191,7 +191,7 @@ async connect(clientId) {
 
 ---
 
-## 🎯 Tipos de Contribuciones
+##  Tipos de Contribuciones
 
 ### 🐛 Bug Reports
 
@@ -202,7 +202,7 @@ Abre un **Issue** con:
 - Sistema operativo & versión Node.js
 - Logs/screenshots si aplica
 
-### ✨ Feature Requests
+###  Feature Requests
 
 Abre un **Issue** con:
 - Caso de uso
@@ -222,7 +222,6 @@ Abre un **Issue** con:
 
 - **Discussions:** Para preguntas generales
 - **Issues:** Para bugs y features
-- **Email:** contacto@ejemplo.com
 
 ---
 
@@ -236,6 +235,6 @@ Abre un **Issue** con:
 
 <div align="center">
 
-¡Gracias por mejorar este proyecto! 🚀
+¡Gracias por mejorar este proyecto! 
 
 </div>
