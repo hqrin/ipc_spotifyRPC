@@ -1,8 +1,22 @@
 {
   "name": "spotify-design",
   "version": "1.0.0",
-  "description": "Spotify-style Rich Presence mockup split from YMdash",
+  "description": "Mockup de Discord Rich Presence con estilo Spotify usando IPC nativo y servidor Node.js.",
   "main": "src/server/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hqrin/ipc_spotifyRPC.git"
+  },
+  "homepage": "https://github.com/hqrin/ipc_spotifyRPC#readme",
+  "keywords": [
+    "spotify",
+    "discord",
+    "rich-presence",
+    "ipc",
+    "nodejs",
+    "discord-rpc",
+    "presence"
+  ],
   "scripts": {
     "start": "node src/server/index.js",
     "test": "node --test src/tests/**/*.test.js",

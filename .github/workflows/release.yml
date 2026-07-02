@@ -34,17 +34,20 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        tag_name: ${{ github.ref_name }}
+        release_name: Spotify Design Release ${{ github.ref_name }}
         body: |
-          ## Changes
+          ## Descripción
+          Publicación automática del tag `${{ github.ref_name }}` para Spotify Discord Rich Presence.
+
+          ## Cambios
           ${{ steps.changelog.outputs.content }}
-          
-          ## Installation
+
+          ## Instalación
           ```bash
           npm install
           ```
-          
-          See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for more details.
+
+          Para más detalles, consulta [README.md](https://github.com/${{ github.repository }}/blob/main/README.md).
         draft: false
         prerelease: false
