@@ -53,7 +53,7 @@ La aplicación muestra:
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/tuusuario/spotify-design.git
+git clone https://github.com/hqrin/ipc_spotifyRPC.git
 cd spotify-design
 ```
 
@@ -149,17 +149,17 @@ Edita `src/server/config.json`:
 spotify-design/
 ├── src/
 │   ├── server/
-│   │   ├── index.js              # 🚀 Servidor principal & orquestador
-│   │   ├── discord-ipc.js         # 💬 Cliente IPC de Discord
-│   │   ├── config.json            # ⚙️  Configuración centralizada
-│   │   └── configLoader.js        # 📂 Gestor de configuración
+│   │   ├── index.js              #  Servidor principal & orquestador
+│   │   ├── discord-ipc.js         #  Cliente IPC de Discord
+│   │   ├── config.json            #   Configuración centralizada
+│   │   └── configLoader.js        #  Gestor de configuración
 │   ├── cli/
-│   │   └── serviceSelector.js     # 🖥️  CLI interactivo
+│   │   └── serviceSelector.js     #   CLI interactivo
 │   └── tests/
-│       └── discordIpc.test.js      # ✅ Suite de pruebas
-├── package.json                   # 📦 Dependencias
-├── README.md                      # 📖 Este archivo
-└── .gitignore                     # 🙈 Archivos ignorados
+│       └── discordIpc.test.js      #  Suite de pruebas
+├── package.json                   #  Dependencias
+├── README.md                      # Este archivo
+└── .gitignore                     #  Archivos ignorados
 ```
 
 ### Componentes Principales
@@ -231,7 +231,7 @@ El servidor implementa:
 
 ---
 
-## 📊 API Endpoints
+## API Endpoints
 
 Por defecto el servidor escucha en `http://localhost:37281`
 
@@ -247,7 +247,7 @@ curl -X POST http://localhost:37281/presence \
 
 ---
 
-## 🧪 Pruebas
+##  Pruebas
 
 ```bash
 npm test
@@ -314,15 +314,15 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md) para más detalles.
 
 ¿Preguntas o problemas?
 
-- 📧 Abre un [Issue](https://github.com/tuusuario/spotify-design/issues)
-- 💬 Discute en [Discussions](https://github.com/tuusuario/spotify-design/discussions)
+- 📧 Abre un [Issue](https://github.com/hqrin/ipc_spotifyRPC/issues)
+- 💬 Discute en [Discussions](https://github.com/hqrin/ipc_spotifyRPC/discussions)
 - 🐦 Contáctame en Twitter
 
 ---
 
 <div align="center">
 
-Hecho con ❤️ por [Tu Nombre]
+Hecho con ❤️ por hqrin
 
 ⭐ Si te gustó, dale una estrella!
 
