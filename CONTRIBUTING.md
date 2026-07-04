@@ -4,13 +4,7 @@ Gracias por tu interés en contribuir a **Spotify Discord Rich Presence**. Las c
 
 ---
 
-## 📋 Código de Conducta
-
-Este proyecto se adhiere al [Covenant Code of Conduct](https://www.contributor-covenant.org/). Al participar, se espera que mantengas este código de conducta.
-
----
-
-## 🚀 Cómo Contribuir
+## Cómo Contribuir
 
 ### 1. Fork & Clone
 
@@ -73,7 +67,7 @@ Luego abre un **Pull Request** en GitHub con:
 
 ---
 
-## 📝 Estilo de Código
+##  Estilo de Código
 
 ### JavaScript
 
@@ -218,18 +212,18 @@ Abre un **Issue** con:
 
 ---
 
-## 💬 Preguntas?
+##  Preguntas?
 
 - **Discussions:** Para preguntas generales
 - **Issues:** Para bugs y features
 
 ---
 
-## ✅ Tu Contribución Será
+##  Tu Contribución Será
 
-- ✨ Reconocida en [CONTRIBUTORS.md](CONTRIBUTORS.md)
-- 🎉 Mencionada en [CHANGELOG.md](CHANGELOG.md)
-- ⭐ Valorada por la comunidad
+-  Reconocida en [CONTRIBUTORS.md](CONTRIBUTORS.md)
+-  Mencionada en [CHANGELOG.md](CHANGELOG.md)
+-  Valorada por la comunidad
 
 ---
 
