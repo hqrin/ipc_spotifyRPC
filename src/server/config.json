@@ -1,13 +1,14 @@
 {
-  "clientId": "1522058393898975252",
+  "clientId": "1522732225718652999",
   "port": 37281,
   "spotify": {
     "enabled": true,
     "title": "Spotify",
     "artist": "Escuchando tu música",
     "album": "Spotify",
-    "albumArt": "https://i.pinimg.com/736x/6a/7d/64/6a7d64df939ba3ceed5886aa432daf0c.jpg",
-    "icon": "https://i.pinimg.com/736x/6a/7d/64/6a7d64df939ba3ceed5886aa432daf0c.jpg",
+    "albumArt": "https://i.scdn.co/image/ab67616d0000b273c5b5972856402d0cf3b6329c",
+    "icon": "https://i.scdn.co/image/ab67616d0000b273c5b5972856402d0cf3b6329c",
+    "assetKey": "pc_d52bf973",
     "url": "https://open.spotify.com/",
     "duration": 180
   },
