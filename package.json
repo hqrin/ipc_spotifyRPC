@@ -20,9 +20,11 @@
   "scripts": {
     "start": "node src/cli/main.js",
     "test": "node --test tests/**/*.test.js",
+    "resize-windows": "node tools/resize-to-512-windows.js",
     "lint:imports": "node -c src/server/index.js && node -c src/server/discord-ipc.js"
   },
   "dependencies": {
+    "jimp": "^0.16.1",
     "axios": "^1.18.1",
     "dotenv": "^16.3.1",
     "inquirer": "^8.2.5",
