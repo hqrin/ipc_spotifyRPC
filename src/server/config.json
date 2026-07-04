@@ -3,9 +3,9 @@
   "port": 37281,
   "spotify": {
     "enabled": true,
-    "title": "Spotify",
+    "title": "caro",
     "artist": "Escuchando tu música",
-    "album": "Spotify",
+    "album": "spotify",
     "albumArt": "https://i.scdn.co/image/ab67616d0000aa54519266cd05491a5b5bc22d1e",
     "icon": "https://i.scdn.co/image/ab67616d0000aa54519266cd05491a5b5bc22d1e",
     "url": "https://open.spotify.com/",

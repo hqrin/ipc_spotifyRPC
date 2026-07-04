@@ -112,6 +112,13 @@ function connectDiscord() {
 }
 
 function createSpotifySong() {
+  // Recargar config en cada creación de canción para aplicar cambios en caliente
+  try {
+    config = loadConfig();
+  } catch (e) {
+    // si falla la recarga, mantener la config anterior
+  }
+
   const elapsed = (Date.now() / 1000) % (config.spotify.duration || 180);
   return {
     title: config.spotify.title,
