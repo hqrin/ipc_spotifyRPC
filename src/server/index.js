@@ -15,6 +15,17 @@ function truncateString(str, maxLength = 127) {
   return str.length <= maxLength ? str : str.substring(0, maxLength - 3) + '...';
 }
 
+function resolveLargeImage(imageUrl, imageKey = '') {
+  if (typeof imageUrl === 'string' && imageUrl.startsWith('http')) {
+    if (imageUrl.includes('i.scdn.co/image/')) {
+      const hash = imageUrl.split('/').pop().split('?')[0];
+      return `spotify:${hash}`;
+    }
+    return imageUrl;
+  }
+  return imageKey || undefined;
+}
+
 function updatePresence(song) {
   if (!song || !discord || !discord.connected) return;
 
@@ -42,13 +53,9 @@ function updatePresence(song) {
     small_text: 'Spotify'
   };
 
-  if (iconUrl && (iconUrl.startsWith('https://i.scdn.co/image/') || iconUrl.startsWith('http://i.scdn.co/image/'))) {
-    const hash = iconUrl.split('/').pop();
-    assets.large_image = `spotify:${hash}`;
-  } else if (iconUrl && iconUrl.startsWith('http')) {
-    assets.large_image = iconUrl;
-  } else if (imageKey) {
-    assets.large_image = imageKey;
+  const largeImage = resolveLargeImage(iconUrl, imageKey);
+  if (largeImage) {
+    assets.large_image = largeImage;
   }
 
   const activity = {

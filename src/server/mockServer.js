@@ -1,5 +1,7 @@
 require('dotenv').config();
 const WebSocket = require('ws');
+const fs = require('fs');
+const path = require('path');
 const { loadConfig } = require('../server/configLoader');
 
 let config = loadConfig();
@@ -13,6 +15,17 @@ const DISCORD_GATEWAY_URL = 'wss://gateway.discord.gg/?v=10&encoding=json';
 function truncateString(str, maxLength = 127) {
   if (!str) return '';
   return str.length <= maxLength ? str : str.substring(0, maxLength - 3) + '...';
+}
+
+function resolveLargeImage(imageUrl, imageKey = '') {
+  if (typeof imageUrl === 'string' && imageUrl.startsWith('http')) {
+    if (imageUrl.includes('i.scdn.co/image/')) {
+      const hash = imageUrl.split('/').pop().split('?')[0];
+      return `spotify:${hash}`;
+    }
+    return imageUrl;
+  }
+  return imageKey || undefined;
 }
 
 function createSpotifySong() {
@@ -37,7 +50,7 @@ function displayPresenceUI(song) {
   const timeStr = `${Math.floor(song.currentTime)}s`;
   const durationStr = `${Math.floor(song.duration)}s`;
   const urlText = song.url ? 'Open Spotify' : 'No URL';
-  
+
   const ui = `
 ╔══════════════════════════════════════╗
 ║  🎧 Spotify                          ║
@@ -59,33 +72,65 @@ function displayPresenceUI(song) {
   console.log(ui);
 }
 
-function sendPresence() {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    console.log('❌ WebSocket no conectado');
-    return;
+function buildPresencePayload(song) {
+  // Cargar config actualizada en cada build para respetar cambios hechos en disco
+  config = loadConfig();
+  const startMs = Date.now() - Math.round(song.currentTime * 1000);
+  const endMs = Date.now() + Math.round((song.duration - song.currentTime) * 1000);
+
+  let imageKey = (typeof config.spotify?.assetKey === 'string' && config.spotify.assetKey.trim()) ? config.spotify.assetKey.trim() : '';
+
+  // Además de assetKey en config, si existe un archivo local en assets/<assetKey>.(png|jpg)
+  // consideramos que la asset está presente y no mostramos la advertencia.
+  let hasLocalAsset = false;
+  if (imageKey) {
+    const assetsDir = path.resolve(__dirname, '..', '..', 'assets');
+    try {
+      if (fs.existsSync(assetsDir)) {
+        const files = fs.readdirSync(assetsDir);
+        hasLocalAsset = files.some(f => f.startsWith(imageKey));
+      }
+    } catch (e) {
+      hasLocalAsset = false;
+    }
   }
 
-  currentSong = createSpotifySong();
-  displayPresenceUI(currentSong);
+  const assets = {
+    large_text: song.album || '',
+    small_text: 'Spotify'
+  };
 
-  const presence = {
+  const largeImage = resolveLargeImage(song.icon || song.albumArt || config.spotify?.icon || config.spotify?.albumArt || '', imageKey);
+  if (largeImage) {
+    assets.large_image = largeImage;
+  }
+
+  return {
     op: 3,
     d: {
       since: null,
       activities: [
         {
-          name: truncateString(currentSong.title, 127),
+          name: 'Spotify',
+          application_id: config.clientId,
           type: 2, // LISTENING
-          state: truncateString(currentSong.artist, 127),
-          details: truncateString(currentSong.album, 127),
-          assets: {
-            large_image: currentSong.icon || 'https://i.pinimg.com/736x/6a/7d/64/6a7d64df939ba3ceed5886aa432daf0c.jpg',
-            large_text: currentSong.album,
-            small_text: 'Spotify'
+          state: truncateString(song.artist, 127),
+          details: truncateString(song.album, 127),
+          id: 'spotify:1',
+          flags: 48,
+          party: {
+            id: `spotify:${Date.now()}`
           },
+          sync_id: `spotify:track:${Date.now()}`,
+          metadata: {
+            album_id: '1',
+            artist_ids: [truncateString(song.artist, 127) || '1'],
+            context_uri: `spotify:track:${Date.now()}`
+          },
+          assets,
           timestamps: {
-            start: Math.round((Date.now() - (currentSong.currentTime * 1000)) / 1000),
-            end: Math.round((Date.now() + ((currentSong.duration - currentSong.currentTime) * 1000)) / 1000)
+            start: startMs,
+            end: endMs
           }
         }
       ],
@@ -93,9 +138,20 @@ function sendPresence() {
       afk: false
     }
   };
+}
 
-  ws.send(JSON.stringify(presence));
-  console.log('\n✅ Actividad actualizada en Discord');
+async function sendPresence() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    return;
+  }
+
+  currentSong = createSpotifySong();
+  displayPresenceUI(currentSong);
+
+  const payload = buildPresencePayload(currentSong);
+
+  // Log adicional para depuración: mostrar qué large_image se enviará
+  ws.send(JSON.stringify(payload));
 }
 
 async function startRealServer() {
@@ -105,139 +161,84 @@ async function startRealServer() {
 ║      by Hqrin - Hellsaq                ║
 ╚════════════════════════════════════════╝
 `;
-  console.log(banner);
-
   const userToken = process.env.USER_TOKEN;
-  
   if (!userToken) {
-    console.log('⚠️  ADVERTENCIA: USER_TOKEN no está configurado en .env');
-    console.log('📝 Por favor, configura tu token en .env:');
-    console.log('   USER_TOKEN=tu_token_de_discord_aqui\n');
-    console.log('📌 Nota: Debes usar un token de usuario válido de Discord\n');
+    console.error('⚠️  ADVERTENCIA: USER_TOKEN no está configurado en .env');
     return;
   }
 
-  console.log(`✅ Conectando con token: ${userToken.substring(0, 20)}...\n`);
-  console.log('📡 Conectando a Discord Gateway...\n');
-
   let connected = false;
 
-  // Conectar a Discord Gateway
   ws = new WebSocket(DISCORD_GATEWAY_URL);
 
   ws.on('open', () => {
-    console.log('[Gateway] WebSocket abierto, esperando HELLO...');
   });
 
   ws.on('message', (data) => {
+    let message = null;
     try {
-      const message = JSON.parse(data);
-
-      if (message.op === 10) {
-        // HELLO
-        const heartbeat_interval = message.d.heartbeat_interval;
-        console.log(`[Gateway] Heartbeat interval: ${heartbeat_interval}ms`);
-        
-        console.log('[Gateway] Enviando IDENTIFY...');
-        ws.send(JSON.stringify({
-          op: 2,
-          d: {
-            token: userToken,
-            intents: 0,
-            properties: {
-              $os: 'windows',
-              $browser: 'spotify-design',
-              $device: 'spotify-design'
-            }
-          }
-        }));
-
-        // Heartbeat
-        heartbeatInterval = setInterval(() => {
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              op: 1,
-              d: null
-            }));
-          }
-        }, heartbeat_interval);
-      }
-
-      if (message.t === 'READY') {
-        console.log('✅ READY recibido - usuario autenticado\n');
-        connected = true;
-        
-        setTimeout(() => {
-          console.log('📡 Enviando presencia inicial...');
-          sendPresence();
-        }, 500);
-      }
-
-      if (message.op === 11) {
-        // HEARTBEAT_ACK
-        console.log('[Gateway] Heartbeat ACK recibido');
-      }
-
-      if (message.op === 4 || message.t === 'GUILD_CREATE') {
-        // Guild create/update, también podemos enviar presencia aquí
-        if (connected && !updateInterval) {
-          console.log('[Gateway] Conectado correctamente, iniciando actualizaciones...');
-          updateInterval = setInterval(() => {
-            if (connected && ws && ws.readyState === WebSocket.OPEN) {
-              sendPresence();
-            }
-          }, 15000);
-        }
-      }
-
-      if (message.op === 9) {
-        console.log('❌ INVALID_SESSION - Token inválido o expirado');
-        console.log('Error:', message.d);
-        process.exit(1);
-      }
-
-      if (message.op === 0 && message.t) {
-        console.log(`[Gateway] Evento: ${message.t}`);
-      }
+      message = JSON.parse(data);
     } catch (e) {
-      console.log('[Gateway] Error procesando mensaje:', e.message);
+      console.error('Error parsing gateway message:', e.message);
+      return;
+    }
+
+    if (message.op === 10) {
+      const heartbeat_interval = message.d.heartbeat_interval;
+      ws.send(JSON.stringify({
+        op: 2,
+        d: {
+          token: userToken,
+          intents: 0,
+          properties: {
+            $os: 'windows',
+            $browser: 'spotify-design',
+            $device: 'spotify-design'
+          }
+        }
+      }));
+
+      heartbeatInterval = setInterval(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ op: 1, d: null }));
+        }
+      }, heartbeat_interval);
+    }
+
+    if (message.t === 'READY') {
+      connected = true;
+
+      setTimeout(() => {
+        sendPresence();
+      }, 500);
+    }
+
+    if (message.op === 9) {
+      process.exit(1);
     }
   });
 
   ws.on('error', (error) => {
-    console.log(`❌ Error de WebSocket: ${error.message}`);
+    console.error('❌ Error de WebSocket:', error.message);
   });
 
   ws.on('close', () => {
-    console.log('\n❌ Conexión cerrada');
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     if (updateInterval) clearInterval(updateInterval);
   });
 
-  console.log('✨ Esperando conexión a Discord...\n');
-
-  // Esperar a que se conecte antes de iniciar updates
-  setTimeout(() => {
-    if (connected && !updateInterval) {
-      console.log('📡 Iniciando actualizaciones periódicas...\n');
-      updateInterval = setInterval(() => {
-        if (connected && ws && ws.readyState === WebSocket.OPEN) {
-          sendPresence();
-        }
-      }, 15000);
+  updateInterval = setInterval(() => {
+    if (connected && ws && ws.readyState === WebSocket.OPEN) {
+      sendPresence();
     }
-  }, 3000);
+  }, 15000);
 
-  // Manejo de Ctrl+C
   process.on('SIGINT', () => {
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     if (updateInterval) clearInterval(updateInterval);
     if (ws) ws.close();
-    console.log('\n\n👋 Desconectado. ¡Adiós!');
     process.exit(0);
   });
-
-  console.log('✨ Presiona Ctrl+C para salir.\n');
 }
 
 module.exports = { startRealServer, createSpotifySong, displayPresenceUI };
