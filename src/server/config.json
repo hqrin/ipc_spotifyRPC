@@ -4,12 +4,13 @@
   "spotify": {
     "enabled": true,
     "title": "caro",
-    "artist": "Escuchando tu música",
-    "album": "spotify",
+    "artist": "Bad Bunny",
+    "album": "caro",
     "albumArt": "https://i.scdn.co/image/ab67616d0000aa54519266cd05491a5b5bc22d1e",
     "icon": "https://i.scdn.co/image/ab67616d0000aa54519266cd05491a5b5bc22d1e",
     "url": "https://open.spotify.com/",
-    "duration": 180
+    "duration": 180,
+    "loop": true
   },
   "showPausedStatus": true,
   "activityTimeout": 10000,
