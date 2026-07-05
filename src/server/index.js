@@ -9,6 +9,9 @@ let discord = null;
 let reconnectTimer = null;
 let updateInterval = null;
 let currentSong = null;
+let simulatedSongIPC = null;
+let simulatedLastTickIPC = Date.now();
+let simulatedStartTimeIPC = null;
 
 function truncateString(str, maxLength = 127) {
   if (!str) return '';
@@ -119,19 +122,65 @@ function createSpotifySong() {
     // si falla la recarga, mantener la config anterior
   }
 
-  const elapsed = (Date.now() / 1000) % (config.spotify.duration || 180);
-  return {
-    title: config.spotify.title,
-    artist: config.spotify.artist,
-    album: config.spotify.album,
-    albumArt: config.spotify.albumArt,
-    icon: config.spotify.icon || config.spotify.albumArt,
-    paused: false,
-    currentTime: elapsed,
-    duration: config.spotify.duration || 180,
-    url: config.spotify.url,
-    service: 'spotify'
-  };
+  const duration = config.spotify.duration || 180;
+  const now = Date.now();
+
+  if (config.spotify && config.spotify.loop === false) {
+    if (!simulatedStartTimeIPC) simulatedStartTimeIPC = now;
+    let elapsed = Math.floor((now - simulatedStartTimeIPC) / 1000);
+    if (elapsed >= duration) elapsed = duration;
+
+    return {
+      title: config.spotify.title,
+      artist: config.spotify.artist,
+      album: config.spotify.album,
+      albumArt: config.spotify.albumArt,
+      icon: config.spotify.icon || config.spotify.albumArt,
+      paused: elapsed >= duration,
+      currentTime: elapsed,
+      duration: duration,
+      url: config.spotify.url,
+      service: 'spotify'
+    };
+  }
+
+  const deltaSec = Math.floor((now - simulatedLastTickIPC) / 1000);
+
+  if (!simulatedSongIPC) {
+    simulatedSongIPC = {
+      title: config.spotify.title,
+      artist: config.spotify.artist,
+      album: config.spotify.album,
+      albumArt: config.spotify.albumArt,
+      icon: config.spotify.icon || config.spotify.albumArt,
+      paused: false,
+      currentTime: 0,
+      duration: duration,
+      url: config.spotify.url,
+      service: 'spotify'
+    };
+    simulatedLastTickIPC = now;
+    simulatedStartTimeIPC = null;
+    return { ...simulatedSongIPC };
+  }
+
+  if (deltaSec > 0) {
+    simulatedSongIPC.currentTime += deltaSec;
+    simulatedLastTickIPC += deltaSec * 1000;
+    if (simulatedSongIPC.currentTime >= duration) {
+      simulatedSongIPC.currentTime = simulatedSongIPC.currentTime % duration;
+    }
+  }
+
+  simulatedSongIPC.title = config.spotify.title;
+  simulatedSongIPC.artist = config.spotify.artist;
+  simulatedSongIPC.album = config.spotify.album;
+  simulatedSongIPC.albumArt = config.spotify.albumArt;
+  simulatedSongIPC.icon = config.spotify.icon || config.spotify.albumArt;
+  simulatedSongIPC.duration = duration;
+  simulatedSongIPC.url = config.spotify.url;
+
+  return { ...simulatedSongIPC };
 }
 
 const banner = `
