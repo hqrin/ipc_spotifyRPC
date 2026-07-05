@@ -13,7 +13,8 @@ const defaultConfig = {
     albumArt: '',
     icon: '',
     url: 'https://open.spotify.com/',
-    duration: 180
+    duration: 180,
+    loop: true
   },
   showPausedStatus: true,
   activityTimeout: 10000,
@@ -36,7 +37,12 @@ function loadConfig(customPath) {
     try {
       loadedConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     } catch (error) {
+      const raw = fs.readFileSync(configPath, 'utf8');
+      const snippet = raw.slice(0, 200).replace(/\r/g, '\\r').replace(/\n/g, '\\n');
       console.error('⚠️ Error cargando config de spotify-design:', error.message);
+      console.error('  Ruta:', configPath);
+      console.error('  Primeros 200 caracteres:', snippet);
+      console.error('  Asegúrate de que el archivo comience exactamente con { y sea JSON válido.');
     }
   }
 
