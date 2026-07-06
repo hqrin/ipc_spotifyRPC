@@ -1,6 +1,19 @@
 const inquirer = require('inquirer');
 const { startServer } = require('../server/index');
 
+function resolveStartupMode() {
+  const cliArg = process.argv.find((value) => value.startsWith('--mode='));
+  if (cliArg) {
+    return cliArg.split('=')[1];
+  }
+
+  if (process.env.SPOTIFY_DESIGN_MODE) {
+    return process.env.SPOTIFY_DESIGN_MODE;
+  }
+
+  return undefined;
+}
+
 const banner = `
 ╔══════════════════════════════════════╗
 ║      SPOTIFY DESIGN - RICH PRESENCE   ║
@@ -9,6 +22,13 @@ const banner = `
 `;
 
 async function showMenu() {
+  const startupMode = resolveStartupMode();
+
+  if (startupMode) {
+    startServer(startupMode);
+    return;
+  }
+
   const answers = await inquirer.prompt([
     {
       type: 'list',
