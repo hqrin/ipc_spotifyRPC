@@ -5,58 +5,76 @@ const path = require('path');
 
 const projectRoot = path.resolve(__dirname, '..');
 const entryPoint = path.join(projectRoot, 'src', 'cli', 'main.js');
-const pidFile = path.join(__dirname, 'keep-alive.pid');
-const stopFile = path.join(__dirname, 'stop-keep-alive');
+const controlDir = path.join(__dirname, '.control');
+const stateFile = path.join(controlDir, 'state.json');
+const markerFile = path.join(controlDir, 'stop-marker');
 
-let child = null;
-let shuttingDown = false;
-
-function writePid(pid) {
-  fs.writeFileSync(pidFile, String(pid), 'utf8');
+if (!fs.existsSync(controlDir)) {
+  fs.mkdirSync(controlDir, { recursive: true });
 }
 
-function removePid() {
-  if (fs.existsSync(pidFile)) {
-    fs.unlinkSync(pidFile);
+let activeChild = null;
+let loopActive = true;
+
+function saveState(payload) {
+  fs.writeFileSync(stateFile, JSON.stringify(payload, null, 2), 'utf8');
+}
+
+function clearState() {
+  if (fs.existsSync(stateFile)) {
+    fs.unlinkSync(stateFile);
+  }
+}
+
+function readState() {
+  if (!fs.existsSync(stateFile)) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+  } catch (error) {
+    return null;
   }
 }
 
 function shouldStop() {
-  return fs.existsSync(stopFile);
+  return fs.existsSync(markerFile);
 }
 
-function clearStopFile() {
-  if (fs.existsSync(stopFile)) {
-    fs.unlinkSync(stopFile);
+function removeMarker() {
+  if (fs.existsSync(markerFile)) {
+    fs.unlinkSync(markerFile);
   }
 }
 
-function stopLauncher() {
-  if (shuttingDown) return;
-  shuttingDown = true;
+function stopLoop() {
+  if (!loopActive) return;
+  loopActive = false;
+  removeMarker();
+  clearState();
 
-  if (child && child.pid) {
+  if (activeChild && activeChild.pid) {
     try {
-      process.kill(child.pid);
+      process.kill(activeChild.pid, 'SIGTERM');
     } catch (error) {
       // ignore
     }
   }
 
-  removePid();
-  clearStopFile();
-  console.log('[keep-alive] Detenido.');
+  console.log('[keep-alive] Parado.');
   process.exit(0);
 }
 
-function startProcess() {
+function launchChild() {
+  if (!loopActive) return;
   if (shouldStop()) {
-    clearStopFile();
-    stopLauncher();
+    removeMarker();
+    stopLoop();
     return;
   }
 
-  child = spawn(process.execPath, [entryPoint], {
+  activeChild = spawn(process.execPath, [entryPoint], {
     cwd: projectRoot,
     detached: true,
     stdio: 'ignore',
@@ -66,25 +84,17 @@ function startProcess() {
     }
   });
 
-  child.unref();
-  writePid(child.pid);
+  activeChild.unref();
+  saveState({ pid: activeChild.pid, startedAt: Date.now() });
 
-  child.on('exit', (code, signal) => {
-    const reason = signal ? `por señal ${signal}` : `código ${code}`;
-    console.log(`\n[keep-alive] El proceso terminó con ${reason}. Reiniciando...`);
-
+  activeChild.on('exit', () => {
+    if (!loopActive) return;
     if (shouldStop()) {
-      clearStopFile();
-      stopLauncher();
+      removeMarker();
+      stopLoop();
       return;
     }
-
-    startProcess();
-  });
-
-  child.on('error', (err) => {
-    console.error('[keep-alive] Error al lanzar el proceso:', err.message);
-    setTimeout(startProcess, 3000);
+    setTimeout(launchChild, 1000);
   });
 }
 
@@ -98,11 +108,11 @@ process.on('SIGTERM', () => {
 
 setInterval(() => {
   if (shouldStop()) {
-    clearStopFile();
-    stopLauncher();
+    removeMarker();
+    stopLoop();
   }
 }, 1000);
 
-console.log('[keep-alive] Servicio iniciado y mantenido vivo.');
+console.log('[keep-alive] Servicio iniciado.');
 console.log('[keep-alive] Para detenerlo, ejecuta: node script/stop-keep-alive.js');
-startProcess();
+launchChild();
